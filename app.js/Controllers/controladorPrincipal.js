@@ -1,40 +1,27 @@
-const obterRespostaAjudaReembolso = require('./ajudaReembolso');
+const natural = require('natural');
+const tokenizer = new natural.WordTokenizer();
 
+const classifier = require('./classifier'); // Importe o classificador treinado de um arquivo separado
 
-// Objeto de mapeamento de palavras-chave para funções
-const funcoesPorPalavraChave = {
-  reembolso: obterRespostaAjudaReembolso,
-  devolucao: obterRespostaAjudaReembolso
-};
+function controladorPrincipal(req, res) {
+  const mensagem = req.body.mensagem;
 
-// Função principal do controlador que recebe a solicitação do cliente e retorna a resposta
-function handleRequest(req, res) {
-  const mensagemCliente = req.body.mensagem; // Supondo que a mensagem do cliente seja enviada no corpo da requisição
+  // Analisar a mensagem
+  const tokens = tokenizer.tokenize(mensagem);
+  const resposta = classifier.classify(tokens);
 
-  let resposta = '';
-  let funcaoEncontrada = false;
-
-  // Verificar as palavras-chave e chamar a função de negócio apropriada
-  for (const palavraChave in funcoesPorPalavraChave) {
-    const funcao = funcoesPorPalavraChave[palavraChave];
-    const palavrasChave = palavraChave.toLowerCase().split(' ');
-
-    // Verificar se todas as palavras-chave estão presentes na mensagem do cliente
-    const palavrasPresentes = palavrasChave.every(palavra => mensagemCliente.toLowerCase().includes(palavra));
-    if (palavrasPresentes) {
-      resposta = funcao(mensagemCliente);
-      funcaoEncontrada = true;
-      break;
-    }
-  }
-
-  if (funcaoEncontrada) {
-    console.log('Resposta ao cliente:', resposta);
-    res.send(resposta);
+  // Resposta adequada com base na classificação
+  let respostaFinal;
+  if (resposta === 'reembolso') {
+    respostaFinal = 'Para solicitar um reembolso, entre em contato com nosso suporte ao cliente.';
+  } else if (resposta === 'recuperação') {
+    respostaFinal = 'Para recuperar sua conta, visite nossa página de recuperação e siga as instruções fornecidas.';
   } else {
-    // Lógica para resposta padrão ou mensagem de erro
-    const respostaPadrao = 'Desculpe, não foi possível identificar a função apropriada.';
-    console.log('Resposta ao cliente:', respostaPadrao);
-    res.send(respostaPadrao);
+    respostaFinal = 'Desculpe, não consigo entender sua solicitação.';
   }
+
+  // Enviar resposta ao cliente
+  res.json({ resposta: respostaFinal });
 }
+
+module.exports = controladorPrincipal;
